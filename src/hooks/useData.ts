@@ -10,31 +10,46 @@ export function useData() {
   const [loadingLeads, setLoadingLeads] = useState(true);
 
   useEffect(() => {
-    if (!auth.currentUser) return;
-    const uid = auth.currentUser.uid;
+    let unsubLeads: (() => void) | undefined;
+    let unsubCust: (() => void) | undefined;
+    let unsubTasks: (() => void) | undefined;
 
-    const qLeads = query(collection(db, 'leads'), where('ownerId', '==', uid));
-    const unsubLeads = onSnapshot(qLeads, (snap) => {
-      setLeads(snap.docs.map(d => ({ id: d.id, ...d.data() } as Lead)));
-      setLoadingLeads(false);
-    }, (error) => handleFirestoreError(error, OperationType.LIST, 'leads'));
+    const unsubscribeAuth = auth.onAuthStateChanged((user) => {
+      if (user) {
+        const uid = user.uid;
 
-    const qCust = query(collection(db, 'customers'), where('ownerId', '==', uid));
-    const unsubCust = onSnapshot(qCust, (snap) => {
-      setCustomers(snap.docs.map(d => ({ id: d.id, ...d.data() } as Customer)));
-    }, (error) => handleFirestoreError(error, OperationType.LIST, 'customers'));
+        const qLeads = query(collection(db, 'leads'), where('ownerId', '==', uid));
+        unsubLeads = onSnapshot(qLeads, (snap) => {
+          setLeads(snap.docs.map(d => ({ id: d.id, ...d.data() } as Lead)));
+          setLoadingLeads(false);
+        }, (error) => handleFirestoreError(error, OperationType.LIST, 'leads'));
 
-    const qTasks = query(collection(db, 'tasks'), where('ownerId', '==', uid));
-    const unsubTasks = onSnapshot(qTasks, (snap) => {
-      setTasks(snap.docs.map(d => ({ id: d.id, ...d.data() } as Task)));
-    }, (error) => handleFirestoreError(error, OperationType.LIST, 'tasks'));
+        const qCust = query(collection(db, 'customers'), where('ownerId', '==', uid));
+        unsubCust = onSnapshot(qCust, (snap) => {
+          setCustomers(snap.docs.map(d => ({ id: d.id, ...d.data() } as Customer)));
+        }, (error) => handleFirestoreError(error, OperationType.LIST, 'customers'));
+
+        const qTasks = query(collection(db, 'tasks'), where('ownerId', '==', uid));
+        unsubTasks = onSnapshot(qTasks, (snap) => {
+          setTasks(snap.docs.map(d => ({ id: d.id, ...d.data() } as Task)));
+        }, (error) => handleFirestoreError(error, OperationType.LIST, 'tasks'));
+      } else {
+        if (unsubLeads) unsubLeads();
+        if (unsubCust) unsubCust();
+        if (unsubTasks) unsubTasks();
+        setLeads([]);
+        setCustomers([]);
+        setTasks([]);
+      }
+    });
 
     return () => {
-      unsubLeads();
-      unsubCust();
-      unsubTasks();
+      if (unsubLeads) unsubLeads();
+      if (unsubCust) unsubCust();
+      if (unsubTasks) unsubTasks();
+      unsubscribeAuth();
     };
-  }, [auth.currentUser]);
+  }, []);
 
   return { leads, customers, tasks, loadingLeads };
 }

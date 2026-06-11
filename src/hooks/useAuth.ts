@@ -9,19 +9,21 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let unsubProfile: (() => void) | undefined;
+
     const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
       setUser(firebaseUser);
       if (firebaseUser) {
         // sync user profile
         const userRef = doc(db, 'users', firebaseUser.uid);
-        const unsubProfile = onSnapshot(userRef, async (docSnap) => {
+        unsubProfile = onSnapshot(userRef, async (docSnap) => {
           if (docSnap.exists()) {
             setProfile({ id: docSnap.id, ...docSnap.data() });
           } else {
             // create user profile if not exists
             try {
               await setDoc(userRef, {
-                email: firebaseUser.email,
+                email: firebaseUser.email || '',
                 name: firebaseUser.displayName || 'Unnamed User',
                 role: 'admin',
                 createdAt: Date.now(),
@@ -35,14 +37,22 @@ export function useAuth() {
            handleFirestoreError(error, OperationType.GET, 'users');
         });
         setLoading(false);
-        return () => unsubProfile();
       } else {
+        if (unsubProfile) {
+          unsubProfile();
+          unsubProfile = undefined;
+        }
         setProfile(null);
         setLoading(false);
       }
     });
 
-    return () => unsubscribe();
+    return () => {
+      if (unsubProfile) {
+        unsubProfile();
+      }
+      unsubscribe();
+    };
   }, []);
 
   return { user, profile, loading };
