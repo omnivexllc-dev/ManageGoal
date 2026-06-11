@@ -22,8 +22,8 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow get: if isSignedIn() && request.auth.uid == userId;
-      allow create: if isSignedIn() && request.auth.uid == userId && isValidUser(incoming()) && incoming().createdAt == request.time.toMillis() && incoming().updatedAt == request.time.toMillis();
-      allow update: if isSignedIn() && request.auth.uid == userId && isValidUser(incoming()) && incoming().updatedAt == request.time.toMillis() && incoming().createdAt == existing().createdAt && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'updatedAt', 'role']);
+      allow create: if isSignedIn() && request.auth.uid == userId && isValidUser(incoming()) && incoming().createdAt > 0 && incoming().updatedAt > 0;
+      allow update: if isSignedIn() && request.auth.uid == userId && isValidUser(incoming()) && incoming().updatedAt > 0 && incoming().createdAt == existing().createdAt && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'updatedAt', 'role']);
     }
 
     function isValidLead(data) {
@@ -41,8 +41,8 @@ service cloud.firestore {
     match /leads/{leadId} {
       allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
       allow get: if isSignedIn() && resource.data.ownerId == request.auth.uid && isValidId(leadId);
-      allow create: if isSignedIn() && isValidId(leadId) && isValidLead(incoming()) && incoming().ownerId == request.auth.uid && incoming().createdAt == request.time.toMillis() && incoming().updatedAt == request.time.toMillis();
-      allow update: if isSignedIn() && isValidId(leadId) && existing().ownerId == request.auth.uid && isValidLead(incoming()) && incoming().ownerId == request.auth.uid && incoming().createdAt == existing().createdAt && incoming().updatedAt == request.time.toMillis() && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'email', 'company', 'status', 'value', 'aiSummary', 'updatedAt']);
+      allow create: if isSignedIn() && isValidId(leadId) && isValidLead(incoming()) && incoming().ownerId == request.auth.uid && incoming().createdAt > 0 && incoming().updatedAt > 0;
+      allow update: if isSignedIn() && isValidId(leadId) && existing().ownerId == request.auth.uid && isValidLead(incoming()) && incoming().ownerId == request.auth.uid && incoming().createdAt == existing().createdAt && incoming().updatedAt > 0 && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'email', 'company', 'status', 'value', 'aiSummary', 'updatedAt']);
       allow delete: if isSignedIn() && isValidId(leadId) && existing().ownerId == request.auth.uid;
     }
 
@@ -59,8 +59,8 @@ service cloud.firestore {
     match /customers/{customerId} {
       allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
       allow get: if isSignedIn() && resource.data.ownerId == request.auth.uid && isValidId(customerId);
-      allow create: if isSignedIn() && isValidId(customerId) && isValidCustomer(incoming()) && incoming().ownerId == request.auth.uid && incoming().createdAt == request.time.toMillis() && incoming().updatedAt == request.time.toMillis();
-      allow update: if isSignedIn() && isValidId(customerId) && existing().ownerId == request.auth.uid && isValidCustomer(incoming()) && incoming().ownerId == request.auth.uid && incoming().createdAt == existing().createdAt && incoming().updatedAt == request.time.toMillis() && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'email', 'company', 'industry', 'updatedAt']);
+      allow create: if isSignedIn() && isValidId(customerId) && isValidCustomer(incoming()) && incoming().ownerId == request.auth.uid && incoming().createdAt > 0 && incoming().updatedAt > 0;
+      allow update: if isSignedIn() && isValidId(customerId) && existing().ownerId == request.auth.uid && isValidCustomer(incoming()) && incoming().ownerId == request.auth.uid && incoming().createdAt == existing().createdAt && incoming().updatedAt > 0 && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'email', 'company', 'industry', 'updatedAt']);
       allow delete: if isSignedIn() && isValidId(customerId) && existing().ownerId == request.auth.uid;
     }
 
@@ -77,8 +77,8 @@ service cloud.firestore {
     match /tasks/{taskId} {
       allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
       allow get: if isSignedIn() && resource.data.ownerId == request.auth.uid && isValidId(taskId);
-      allow create: if isSignedIn() && isValidId(taskId) && isValidTask(incoming()) && incoming().ownerId == request.auth.uid && incoming().createdAt == request.time.toMillis() && incoming().updatedAt == request.time.toMillis();
-      allow update: if isSignedIn() && isValidId(taskId) && existing().ownerId == request.auth.uid && isValidTask(incoming()) && incoming().ownerId == request.auth.uid && incoming().createdAt == existing().createdAt && incoming().updatedAt == request.time.toMillis() && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'status', 'dueDate', 'updatedAt']);
+      allow create: if isSignedIn() && isValidId(taskId) && isValidTask(incoming()) && incoming().ownerId == request.auth.uid && incoming().createdAt > 0 && incoming().updatedAt > 0;
+      allow update: if isSignedIn() && isValidId(taskId) && existing().ownerId == request.auth.uid && isValidTask(incoming()) && incoming().ownerId == request.auth.uid && incoming().createdAt == existing().createdAt && incoming().updatedAt > 0 && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'status', 'dueDate', 'updatedAt']);
       allow delete: if isSignedIn() && isValidId(taskId) && existing().ownerId == request.auth.uid;
     }
   }

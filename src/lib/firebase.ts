@@ -108,7 +108,7 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     path
   };
   console.error('Firestore Error: ', JSON.stringify(errInfo));
-  toast.error("Database operation failed: " + (error instanceof Error ? error.message : "Unknown error"));
+  toast.error(`Database operation failed (${operationType} on ${path}): ` + (error instanceof Error ? error.message : "Unknown error"));
   throw new Error(JSON.stringify(errInfo));
 }
 

@@ -14,13 +14,13 @@ export function useAuth() {
       if (firebaseUser) {
         // sync user profile
         const userRef = doc(db, 'users', firebaseUser.uid);
-        const unsubProfile = onSnapshot(userRef, (docSnap) => {
+        const unsubProfile = onSnapshot(userRef, async (docSnap) => {
           if (docSnap.exists()) {
             setProfile({ id: docSnap.id, ...docSnap.data() });
           } else {
             // create user profile if not exists
             try {
-              setDoc(userRef, {
+              await setDoc(userRef, {
                 email: firebaseUser.email,
                 name: firebaseUser.displayName || 'Unnamed User',
                 role: 'admin',
