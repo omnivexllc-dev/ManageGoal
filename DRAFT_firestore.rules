@@ -1,0 +1,85 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} { 
+      allow read, write: if false; 
+    }
+
+    function isSignedIn() { return request.auth != null; }
+    function isAdmin() { return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)); }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['email', 'name', 'role', 'createdAt', 'updatedAt']) &&
+             data.email is string && data.email.size() <= 200 &&
+             data.name is string && data.name.size() <= 200 &&
+             data.role is string && data.role.size() <= 50 &&
+             data.createdAt is number && data.updatedAt is number;
+    }
+
+    match /users/{userId} {
+      allow get: if isSignedIn() && request.auth.uid == userId;
+      allow create: if isSignedIn() && request.auth.uid == userId && isValidUser(incoming()) && incoming().createdAt == request.time.toMillis() && incoming().updatedAt == request.time.toMillis();
+      allow update: if isSignedIn() && request.auth.uid == userId && isValidUser(incoming()) && incoming().updatedAt == request.time.toMillis() && incoming().createdAt == existing().createdAt && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'updatedAt', 'role']);
+    }
+
+    function isValidLead(data) {
+      return data.keys().hasAll(['ownerId', 'name', 'status', 'createdAt', 'updatedAt']) &&
+             data.ownerId is string && data.ownerId.size() <= 128 &&
+             data.name is string && data.name.size() <= 200 &&
+             data.status is string && data.status.size() <= 50 &&
+             data.createdAt is number && data.updatedAt is number &&
+             ( !('email' in data) || (data.email is string && data.email.size() <= 200) ) &&
+             ( !('company' in data) || (data.company is string && data.company.size() <= 200) ) &&
+             ( !('value' in data) || (data.value is number) ) &&
+             ( !('aiSummary' in data) || (data.aiSummary is string && data.aiSummary.size() <= 50000) );
+    }
+
+    match /leads/{leadId} {
+      allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow get: if isSignedIn() && resource.data.ownerId == request.auth.uid && isValidId(leadId);
+      allow create: if isSignedIn() && isValidId(leadId) && isValidLead(incoming()) && incoming().ownerId == request.auth.uid && incoming().createdAt == request.time.toMillis() && incoming().updatedAt == request.time.toMillis();
+      allow update: if isSignedIn() && isValidId(leadId) && existing().ownerId == request.auth.uid && isValidLead(incoming()) && incoming().ownerId == request.auth.uid && incoming().createdAt == existing().createdAt && incoming().updatedAt == request.time.toMillis() && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'email', 'company', 'status', 'value', 'aiSummary', 'updatedAt']);
+      allow delete: if isSignedIn() && isValidId(leadId) && existing().ownerId == request.auth.uid;
+    }
+
+    function isValidCustomer(data) {
+      return data.keys().hasAll(['ownerId', 'name', 'email', 'createdAt', 'updatedAt']) &&
+             data.ownerId is string && data.ownerId.size() <= 128 &&
+             data.name is string && data.name.size() <= 200 &&
+             data.email is string && data.email.size() <= 200 &&
+             data.createdAt is number && data.updatedAt is number &&
+             ( !('company' in data) || (data.company is string && data.company.size() <= 200) ) &&
+             ( !('industry' in data) || (data.industry is string && data.industry.size() <= 200) );
+    }
+
+    match /customers/{customerId} {
+      allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow get: if isSignedIn() && resource.data.ownerId == request.auth.uid && isValidId(customerId);
+      allow create: if isSignedIn() && isValidId(customerId) && isValidCustomer(incoming()) && incoming().ownerId == request.auth.uid && incoming().createdAt == request.time.toMillis() && incoming().updatedAt == request.time.toMillis();
+      allow update: if isSignedIn() && isValidId(customerId) && existing().ownerId == request.auth.uid && isValidCustomer(incoming()) && incoming().ownerId == request.auth.uid && incoming().createdAt == existing().createdAt && incoming().updatedAt == request.time.toMillis() && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'email', 'company', 'industry', 'updatedAt']);
+      allow delete: if isSignedIn() && isValidId(customerId) && existing().ownerId == request.auth.uid;
+    }
+
+    function isValidTask(data) {
+      return data.keys().hasAll(['ownerId', 'title', 'status', 'createdAt', 'updatedAt']) &&
+             data.ownerId is string && data.ownerId.size() <= 128 &&
+             data.title is string && data.title.size() <= 250 &&
+             data.status is string && data.status.size() <= 50 &&
+             data.createdAt is number && data.updatedAt is number &&
+             ( !('description' in data) || (data.description is string && data.description.size() <= 10000) ) &&
+             ( !('dueDate' in data) || (data.dueDate is number) );
+    }
+
+    match /tasks/{taskId} {
+      allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow get: if isSignedIn() && resource.data.ownerId == request.auth.uid && isValidId(taskId);
+      allow create: if isSignedIn() && isValidId(taskId) && isValidTask(incoming()) && incoming().ownerId == request.auth.uid && incoming().createdAt == request.time.toMillis() && incoming().updatedAt == request.time.toMillis();
+      allow update: if isSignedIn() && isValidId(taskId) && existing().ownerId == request.auth.uid && isValidTask(incoming()) && incoming().ownerId == request.auth.uid && incoming().createdAt == existing().createdAt && incoming().updatedAt == request.time.toMillis() && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'status', 'dueDate', 'updatedAt']);
+      allow delete: if isSignedIn() && isValidId(taskId) && existing().ownerId == request.auth.uid;
+    }
+  }
+}
