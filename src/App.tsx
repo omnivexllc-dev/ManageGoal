@@ -12,6 +12,7 @@ import { Dashboard } from './pages/Dashboard';
 import { Leads } from './pages/Leads';
 import { Customers } from './pages/Customers';
 import { Tasks } from './pages/Tasks';
+import { Analytics } from './pages/Analytics';
 import { Automation } from './pages/Automation';
 import { Settings } from './pages/Settings';
 import { Login } from './pages/Login';
@@ -36,6 +37,7 @@ export default function App() {
           <Route path="/leads" element={<Leads />} />
           <Route path="/customers" element={<Customers />} />
           <Route path="/tasks" element={<Tasks />} />
+          <Route path="/analytics" element={<Analytics />} />
           <Route path="/automation" element={<Automation />} />
           <Route path="/settings" element={<Settings />} />
         </Route>

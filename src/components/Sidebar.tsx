@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, UserCheck, CheckSquare, Settings, LogOut, ChevronLeft, ChevronRight, Zap } from 'lucide-react';
+import { LayoutDashboard, Users, UserCheck, CheckSquare, Settings, LogOut, ChevronLeft, ChevronRight, Zap, BarChart3 } from 'lucide-react';
 import { signOut } from '../lib/firebase';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -14,6 +14,7 @@ const navItems = [
   { name: 'Leads', path: '/leads', icon: Users },
   { name: 'Customers', path: '/customers', icon: UserCheck },
   { name: 'Tasks', path: '/tasks', icon: CheckSquare },
+  { name: 'Analytics', path: '/analytics', icon: BarChart3 },
   { name: 'Automation', path: '/automation', icon: Zap },
   { name: 'Settings', path: '/settings', icon: Settings },
 ];

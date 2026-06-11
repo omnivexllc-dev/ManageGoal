@@ -130,11 +130,11 @@ export function LandingPage() {
             <p className="text-slate-600 max-w-2xl mx-auto text-lg">Start for free, upgrade when you need more power.</p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+          <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
             {/* Essential Plan */}
             <div className="bg-white rounded-2xl border border-slate-200 p-8 hover:shadow-lg transition-shadow">
               <h3 className="text-xl font-semibold text-slate-900 mb-2">Essential</h3>
-              <p className="text-slate-500 mb-6">Perfect for individuals and small teams getting started.</p>
+              <p className="text-slate-500 mb-6 flex-grow h-12">Perfect for individuals and small teams getting started.</p>
               <div className="mb-6 flex items-baseline">
                 <span className="text-4xl font-bold text-slate-900">$0</span>
                 <span className="text-slate-500 ml-2">/mo</span>
@@ -146,7 +146,7 @@ export function LandingPage() {
                   'Standard Support',
                   '1 Team Member'
                 ].map((feature, i) => (
-                  <li key={i} className="flex items-center text-slate-600">
+                  <li key={i} className="flex items-center text-slate-600 border-b border-white pb-1">
                     <CheckCircle2 className="w-5 h-5 text-slate-900 mr-3 flex-shrink-0" />
                     {feature}
                   </li>
@@ -154,21 +154,21 @@ export function LandingPage() {
               </ul>
               <button 
                 onClick={handleGetStarted}
-                className="w-full py-3 rounded-xl font-medium border border-slate-200 text-slate-900 hover:bg-slate-50 transition-colors"
+                className="w-full py-3 rounded-xl font-medium border border-slate-200 text-slate-900 hover:bg-slate-50 transition-colors mt-auto"
               >
                 Start for free
               </button>
             </div>
 
             {/* Pro Plan */}
-            <div className="bg-slate-900 rounded-2xl border border-slate-800 p-8 text-white relative shadow-2xl">
+            <div className="bg-slate-900 rounded-2xl border border-slate-800 p-8 text-white relative shadow-2xl flex flex-col justify-between">
               <div className="absolute top-0 right-8 transform -translate-y-1/2">
                 <span className="bg-white text-slate-900 text-xs font-bold uppercase tracking-wider py-1 px-3 rounded-full">
                   Most Popular
                 </span>
               </div>
               <h3 className="text-xl font-semibold mb-2">ManageGoal Pro</h3>
-              <p className="text-slate-400 mb-6">For growing businesses that need AI and automation.</p>
+              <p className="text-slate-400 mb-6 h-12">For growing businesses that need AI and automation.</p>
               <div className="mb-6 flex items-baseline">
                 <span className="text-4xl font-bold">$29</span>
                 <span className="text-slate-400 ml-2">/mo</span>
@@ -189,9 +189,40 @@ export function LandingPage() {
               </ul>
               <button 
                 onClick={handleGetStarted}
-                className="w-full py-3 rounded-xl font-medium bg-white text-slate-900 hover:bg-slate-100 transition-colors"
+                className="w-full py-3 rounded-xl font-medium bg-white text-slate-900 hover:bg-slate-100 transition-colors mt-auto"
               >
                 Upgrade to Pro
+              </button>
+            </div>
+
+            {/* Enterprise Plan */}
+            <div className="bg-white rounded-2xl border border-slate-200 p-8 hover:shadow-lg transition-shadow flex flex-col justify-between">
+              <h3 className="text-xl font-semibold text-slate-900 mb-2">Enterprise</h3>
+              <p className="text-slate-500 mb-6 h-12">For large-scale organizations requiring custom solutions.</p>
+              <div className="mb-6 flex items-baseline">
+                <span className="text-4xl font-bold text-slate-900">$99</span>
+                <span className="text-slate-500 ml-2">/mo</span>
+              </div>
+              <ul className="space-y-4 mb-8">
+                {[
+                  'Everything in Pro',
+                  'Custom Report Builder',
+                  'Dedicated Account Manager',
+                  'White-label options',
+                  'Advanced Data Import/Export',
+                  'Custom Workflows'
+                ].map((feature, i) => (
+                  <li key={i} className="flex items-center text-slate-600">
+                    <CheckCircle2 className="w-5 h-5 text-slate-900 mr-3 flex-shrink-0" />
+                    {feature}
+                  </li>
+                ))}
+              </ul>
+              <button 
+                onClick={handleGetStarted}
+                className="w-full py-3 rounded-xl font-medium border border-slate-200 text-slate-900 hover:bg-slate-50 transition-colors mt-auto"
+              >
+                Contact Sales
               </button>
             </div>
           </div>
