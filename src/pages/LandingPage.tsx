@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Target, Users, Zap, CheckCircle2, TrendingUp, BarChart3, Lock, MessageSquare } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
@@ -237,9 +237,10 @@ export function LandingPage() {
             <span className="font-semibold text-slate-900">ManageGoal CRM</span>
           </div>
           <div className="flex gap-6 text-sm text-slate-500">
-            <a href="#" className="hover:text-slate-900 transition-colors">Privacy</a>
-            <a href="#" className="hover:text-slate-900 transition-colors">Terms</a>
-            <a href="#" className="hover:text-slate-900 transition-colors">Contact</a>
+            <Link to="/privacy" className="hover:text-slate-900 transition-colors">Privacy</Link>
+            <Link to="/terms" className="hover:text-slate-900 transition-colors">Terms</Link>
+            <Link to="/refund" className="hover:text-slate-900 transition-colors">Refund</Link>
+            <a href="mailto:support@managegoal.com" className="hover:text-slate-900 transition-colors">Contact</a>
           </div>
           <p className="text-sm text-slate-400">
             © {new Date().getFullYear()} ManageGoal CRM. All rights reserved.
