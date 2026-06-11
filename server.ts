@@ -2,12 +2,35 @@ import express from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
+import { createProxyMiddleware } from 'http-proxy-middleware';
+import fs from 'fs';
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+// Read the Firebase projectId to dynamically proxy auth
+const firebaseConfigPath = path.join(process.cwd(), 'firebase-applet-config.json');
+let firebaseProjectId = '';
+try {
+  if (fs.existsSync(firebaseConfigPath)) {
+    const config = JSON.parse(fs.readFileSync(firebaseConfigPath, 'utf8'));
+    firebaseProjectId = config.projectId;
+  }
+} catch (e) {
+  console.error('Failed to read firebase config for proxy', e);
+}
 
 async function startServer() {
   const app = express();
   const PORT = 3000;
+
+  // Firebase Auth Proxy for AI Studio / WebContainers
+  if (firebaseProjectId) {
+    app.use('/__', createProxyMiddleware({
+      target: `https://${firebaseProjectId}.firebaseapp.com`,
+      changeOrigin: true,
+      secure: true,
+    }));
+  }
 
   app.use(express.json());
 
