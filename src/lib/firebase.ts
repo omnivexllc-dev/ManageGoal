@@ -4,12 +4,7 @@ import { getFirestore, doc, getDocFromServer, collection, query, where, getDocs,
 import firebaseConfig from '../../firebase-applet-config.json';
 import toast from 'react-hot-toast';
 
-const app = initializeApp({
-  ...firebaseConfig,
-  // Bypass 'unauthorized-domain' error in WebContainers by using the current domain
-  // and proxying the /__/auth handler requests to Firebase (via server.ts proxy middleware).
-  authDomain: typeof window !== 'undefined' ? window.location.hostname : firebaseConfig.authDomain
-});
+const app = initializeApp(firebaseConfig);
 // @ts-ignore
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId); 
 export const auth = getAuth();
@@ -20,7 +15,19 @@ export const loginWithGoogle = async () => {
     await signInWithPopup(auth, provider);
     toast.success('Logged in successfully!');
   } catch (error: any) {
-    toast.error(error.message);
+    if (error.code === 'auth/unauthorized-domain') {
+      const currentHost = typeof window !== 'undefined' ? window.location.hostname : 'this domain';
+      toast.error(`Domain not authorized. Please add "${currentHost}" to your Firebase Console -> Authentication -> Settings -> Authorized domains.`, {
+        duration: 10000,
+      });
+      console.error(`auth/unauthorized-domain: Add "${currentHost}" to Firebase Auth authorized domains.`);
+    } else if (error.code === 'auth/operation-not-allowed') {
+      toast.error('Google Sign-In is not enabled. Please enable it in your Firebase Console -> Authentication -> Sign-in method.', {
+        duration: 10000,
+      });
+    } else {
+      toast.error(error.message);
+    }
   }
 };
 
@@ -29,7 +36,13 @@ export const loginWithEmail = async (email: string, pass: string) => {
     await signInWithEmailAndPassword(auth, email, pass);
     toast.success('Logged in successfully!');
   } catch (error: any) {
-    toast.error(error.message);
+    if (error.code === 'auth/operation-not-allowed') {
+      toast.error('Email/Password Sign-In is not enabled. Please enable it in your Firebase Console -> Authentication -> Sign-in method.', {
+        duration: 10000,
+      });
+    } else {
+      toast.error(error.message);
+    }
   }
 };
 
@@ -38,7 +51,13 @@ export const signUpWithEmail = async (email: string, pass: string) => {
     await createUserWithEmailAndPassword(auth, email, pass);
     toast.success('Account created successfully!');
   } catch (error: any) {
-    toast.error(error.message);
+    if (error.code === 'auth/operation-not-allowed') {
+      toast.error('Email/Password Sign-In is not enabled. Please enable it in your Firebase Console -> Authentication -> Sign-in method.', {
+        duration: 10000,
+      });
+    } else {
+      toast.error(error.message);
+    }
   }
 };
 
