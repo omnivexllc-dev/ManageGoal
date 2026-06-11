@@ -12,7 +12,7 @@ export function Login() {
   const [password, setPassword] = useState('');
 
   if (loading) return null;
-  if (user) return <Navigate to="/" />;
+  if (user) return <Navigate to="/dashboard" />;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

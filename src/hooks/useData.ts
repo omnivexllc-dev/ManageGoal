@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import nprogress from 'nprogress';
 import { db, collection, query, where, onSnapshot, handleFirestoreError, OperationType } from '../lib/firebase';
 import { Lead, Customer, Task } from '../types';
 import { auth } from '../lib/firebase';
@@ -19,10 +20,15 @@ export function useData() {
         const uid = user.uid;
 
         const qLeads = query(collection(db, 'leads'), where('ownerId', '==', uid));
+        nprogress.start();
         unsubLeads = onSnapshot(qLeads, (snap) => {
           setLeads(snap.docs.map(d => ({ id: d.id, ...d.data() } as Lead)));
           setLoadingLeads(false);
-        }, (error) => handleFirestoreError(error, OperationType.LIST, 'leads'));
+          nprogress.done();
+        }, (error) => {
+          handleFirestoreError(error, OperationType.LIST, 'leads');
+          nprogress.done();
+        });
 
         const qCust = query(collection(db, 'customers'), where('ownerId', '==', uid));
         unsubCust = onSnapshot(qCust, (snap) => {

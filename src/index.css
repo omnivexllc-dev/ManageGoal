@@ -1,1 +1,14 @@
 @import "tailwindcss";
+
+#nprogress .bar {
+  background: #0f172a !important; /* Slate 900 */
+}
+
+#nprogress .peg {
+  box-shadow: 0 0 10px #0f172a, 0 0 5px #0f172a !important;
+}
+
+#nprogress .spinner-icon {
+  border-top-color: #0f172a !important;
+  border-left-color: #0f172a !important;
+}

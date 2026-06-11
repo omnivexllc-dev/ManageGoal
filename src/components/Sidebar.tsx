@@ -10,7 +10,7 @@ export function cn(...inputs: any[]) {
 }
 
 const navItems = [
-  { name: 'Dashboard', path: '/', icon: LayoutDashboard },
+  { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
   { name: 'Leads', path: '/leads', icon: Users },
   { name: 'Customers', path: '/customers', icon: UserCheck },
   { name: 'Tasks', path: '/tasks', icon: CheckSquare },

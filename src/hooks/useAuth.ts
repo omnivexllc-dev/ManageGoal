@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import nprogress from 'nprogress';
 import { User } from 'firebase/auth';
 import { auth, db, doc, onSnapshot, handleFirestoreError, OperationType } from '../lib/firebase';
 import { setDoc } from 'firebase/firestore';
@@ -16,6 +17,7 @@ export function useAuth() {
       if (firebaseUser) {
         // sync user profile
         const userRef = doc(db, 'users', firebaseUser.uid);
+        nprogress.start();
         unsubProfile = onSnapshot(userRef, async (docSnap) => {
           if (docSnap.exists()) {
             setProfile({ id: docSnap.id, ...docSnap.data() });
@@ -33,8 +35,10 @@ export function useAuth() {
               handleFirestoreError(e, OperationType.CREATE, 'users');
             }
           }
+          nprogress.done();
         }, (error) => {
            handleFirestoreError(error, OperationType.GET, 'users');
+           nprogress.done();
         });
         setLoading(false);
       } else {
