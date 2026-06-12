@@ -174,6 +174,12 @@ export function Login() {
           </button>
         </div>
       </div>
+      
+      <div className="absolute bottom-8 flex gap-6 text-sm text-slate-500 font-medium">
+        <a href="/privacy" className="hover:text-slate-900 transition-colors">Privacy</a>
+        <a href="/terms" className="hover:text-slate-900 transition-colors">Terms</a>
+        <a href="/refund" className="hover:text-slate-900 transition-colors">Refund</a>
+      </div>
     </div>
   );
 }

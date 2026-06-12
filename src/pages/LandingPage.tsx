@@ -1,17 +1,51 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Target, Users, Zap, CheckCircle2, TrendingUp, BarChart3, Lock, MessageSquare } from 'lucide-react';
+import { Target, Users, Zap, CheckCircle2, TrendingUp, BarChart3, Lock, MessageSquare, Loader2 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { loadStripe } from '@stripe/stripe-js';
+
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY || '');
 
 export function LandingPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
 
   const handleGetStarted = () => {
     if (user) {
       navigate('/dashboard');
     } else {
       navigate('/login');
+    }
+  };
+
+  const handleUpgrade = async (plan: string, price: number) => {
+    try {
+      setLoadingPlan(plan);
+      const response = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ plan, price }),
+      });
+
+      const { id, error } = await response.json();
+      
+      if (error) {
+        alert(error);
+        return;
+      }
+
+      const stripe = await stripePromise;
+      if (stripe) {
+        await stripe.redirectToCheckout({ sessionId: id });
+      }
+    } catch (e: any) {
+      console.error(e);
+      alert('Failed to initiate checkout.');
+    } finally {
+      setLoadingPlan(null);
     }
   };
 
@@ -188,10 +222,11 @@ export function LandingPage() {
                 ))}
               </ul>
               <button 
-                onClick={handleGetStarted}
-                className="w-full py-3 rounded-xl font-medium bg-white text-slate-900 hover:bg-slate-100 transition-colors mt-auto"
+                onClick={() => handleUpgrade('Pro', 29)}
+                disabled={loadingPlan === 'Pro'}
+                className="w-full py-3 rounded-xl font-medium bg-white text-slate-900 hover:bg-slate-100 transition-colors mt-auto flex items-center justify-center gap-2 disabled:opacity-75"
               >
-                Upgrade to Pro
+                {loadingPlan === 'Pro' ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Upgrade to Pro'}
               </button>
             </div>
 
