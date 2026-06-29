@@ -1,8 +1,11 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useData } from '../hooks/useData';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { Users, UserCheck, DollarSign, CheckCircle2 } from 'lucide-react';
+import { Users, UserCheck, DollarSign, CheckCircle2, ShieldCheck, Loader2 } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { db, doc, updateDoc } from '../lib/firebase';
+import toast from 'react-hot-toast';
 
 const mockData = [
   { name: 'Jan', revenue: 4000 },
@@ -14,14 +17,80 @@ const mockData = [
 ];
 
 export function Dashboard() {
-  const { profile } = useAuth();
+  const { user, profile } = useAuth();
   const { leads, customers, tasks } = useData();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [completingPayment, setCompletingPayment] = useState(false);
+  const [paymentSuccessData, setPaymentSuccessData] = useState<any>(null);
+
+  useEffect(() => {
+    const gateway = searchParams.get('gateway');
+    const sessionId = searchParams.get('amazonPayCheckoutSessionId');
+
+    if (gateway === 'amazonpay' && sessionId && user) {
+      setCompletingPayment(true);
+      
+      // Call backend to verify checkout session
+      fetch('/api/amazon-pay/complete-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId })
+      })
+      .then(res => {
+        if (!res.ok) throw new Error('Verification failed');
+        return res.json();
+      })
+      .then(async (data) => {
+        // Upgrade user in firestore
+        const docRef = doc(db, 'users', user.uid);
+        await updateDoc(docRef, {
+          plan: `${data.plan} (Amazon Pay)`,
+          updatedAt: Date.now()
+        });
+        setPaymentSuccessData(data);
+        toast.success(`Success! Upgraded to ${data.plan} via Amazon Pay!`);
+        
+        // Remove query parameters from URL for a clean state
+        setSearchParams({}, { replace: true });
+      })
+      .catch((err) => {
+        console.error(err);
+        toast.error('Could not verify your Amazon Pay checkout. Please contact support.');
+      })
+      .finally(() => {
+        setCompletingPayment(false);
+      });
+    }
+  }, [searchParams, user, setSearchParams]);
 
   const totalValue = leads.filter(l => l.status === 'Won').reduce((acc, l) => acc + (l.value || 0), 0);
   const doneTasks = tasks.filter(t => t.status === 'Done');
 
   return (
     <div className="p-8 max-w-7xl mx-auto">
+      {completingPayment && (
+        <div className="bg-amber-50 border border-amber-200 rounded-3xl p-6 mb-8 flex items-center gap-4 text-amber-900 shadow-sm animate-pulse">
+          <Loader2 className="w-8 h-8 text-amber-600 animate-spin shrink-0" />
+          <div>
+            <h3 className="font-bold text-base">Verifying Your Amazon Pay Checkout...</h3>
+            <p className="text-sm text-amber-700 mt-0.5">Please wait while we establish a secure connection with Amazon and upgrade your account.</p>
+          </div>
+        </div>
+      )}
+
+      {paymentSuccessData && (
+        <div className="bg-emerald-50 border border-emerald-200 rounded-3xl p-6 mb-8 flex items-start gap-4 text-emerald-900 shadow-sm">
+          <ShieldCheck className="w-8 h-8 text-emerald-600 shrink-0 mt-0.5" />
+          <div>
+            <h3 className="font-bold text-lg">Thank You for Upgrading!</h3>
+            <p className="text-sm text-emerald-700 mt-0.5">
+              Your payment of <strong className="text-emerald-950">${paymentSuccessData.amount}</strong> was approved by Amazon Pay. 
+              The <strong className="text-emerald-950">{paymentSuccessData.plan}</strong> privileges have been instantly unlocked for your account.
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="mb-8">
         <h1 className="text-3xl font-bold tracking-tight text-slate-900 mb-2">Welcome back, {profile?.name}</h1>
         <p className="text-slate-500">Here's your sales and activity overview for today.</p>

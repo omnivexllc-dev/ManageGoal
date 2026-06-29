@@ -111,7 +111,14 @@ async function startServer() {
   // Amazon Pay Status Endpoint
   app.get('/api/amazon-pay/status', (req, res) => {
     const configured = !!(process.env.AMAZON_PAY_PUBLIC_KEY_ID && process.env.AMAZON_PAY_PRIVATE_KEY);
-    res.json({ configured });
+    res.json({
+      configured,
+      sandbox: process.env.AMAZON_PAY_SANDBOX !== 'false',
+      merchantId: process.env.AMAZON_PAY_MERCHANT_ID || '',
+      storeId: process.env.AMAZON_PAY_STORE_ID || '',
+      publicKeyId: process.env.AMAZON_PAY_PUBLIC_KEY_ID || '',
+      hasPrivateKey: !!process.env.AMAZON_PAY_PRIVATE_KEY
+    });
   });
 
   // Real Amazon Pay Checkout Session Creation Endpoint
@@ -163,6 +170,43 @@ async function startServer() {
     } catch (error: any) {
       console.error('Amazon Pay Session Error:', error);
       res.status(500).json({ error: error.message || 'Internal server error creating Amazon Pay session' });
+    }
+  });
+
+  // Complete / Verify Amazon Pay Session
+  app.post('/api/amazon-pay/complete-session', async (req, res) => {
+    try {
+      const client = getAmazonPayClient();
+      const { sessionId } = req.body;
+      
+      if (!sessionId) {
+        return res.status(400).json({ error: 'sessionId is required.' });
+      }
+
+      // Fetch the checkout session details from Amazon
+      const response = await client.getCheckoutSession(sessionId);
+      
+      // The response contains status, paymentDetails, and merchantMetadata
+      const status = response.statusDetails?.state || 'Unknown';
+      const amount = response.paymentDetails?.chargeAmount?.amount || '0.00';
+      const noteToBuyer = response.merchantMetadata?.noteToBuyer || '';
+      
+      // Determine plan from noteToBuyer
+      let plan = 'Pro';
+      if (noteToBuyer.toLowerCase().includes('enterprise')) {
+        plan = 'Enterprise';
+      }
+
+      res.json({
+        success: true,
+        status,
+        amount,
+        plan,
+        sessionData: response
+      });
+    } catch (error: any) {
+      console.error('Amazon Pay Complete Session Error:', error);
+      res.status(500).json({ error: error.message || 'Failed to complete Amazon Pay session' });
     }
   });
 

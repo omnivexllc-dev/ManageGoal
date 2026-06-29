@@ -3,14 +3,21 @@ import { useAuth } from '../hooks/useAuth';
 import { db, doc, updateDoc, OperationType, handleFirestoreError } from '../lib/firebase';
 import { 
   CreditCard, CheckCircle2, ShieldCheck, HelpCircle, Loader2, Key, 
-  Info, ExternalLink, ArrowRight, Play, RefreshCw, Smartphone, Globe, Mail 
+  Info, ExternalLink, ArrowRight, Play, RefreshCw, Smartphone, Globe, Mail,
+  AlertTriangle, Check
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export function AmazonPayHub() {
   const { user, profile } = useAuth();
   const [keysConfigured, setKeysConfigured] = useState<boolean | null>(null);
+  const [sandboxMode, setSandboxMode] = useState<boolean>(true);
+  const [merchantId, setMerchantId] = useState<string>('');
+  const [storeId, setStoreId] = useState<string>('');
+  const [publicKeyId, setPublicKeyId] = useState<string>('');
+  const [hasPrivateKey, setHasPrivateKey] = useState<boolean>(false);
   const [loadingStatus, setLoadingStatus] = useState(true);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   
   // Playground State
   const [selectedPlan, setSelectedPlan] = useState<'Pro' | 'Enterprise'>('Pro');
@@ -29,6 +36,11 @@ export function AmazonPayHub() {
       .then(res => res.json())
       .then(data => {
         setKeysConfigured(data.configured);
+        setSandboxMode(data.sandbox);
+        setMerchantId(data.merchantId);
+        setStoreId(data.storeId);
+        setPublicKeyId(data.publicKeyId);
+        setHasPrivateKey(data.hasPrivateKey);
         setLoadingStatus(false);
       })
       .catch(() => {
@@ -40,6 +52,37 @@ export function AmazonPayHub() {
   const handleStartSimulatedCheckout = () => {
     setCheckoutStep('login');
     setIsCheckoutOpen(true);
+  };
+
+  const handleRealAmazonPayCheckout = async () => {
+    setIsRedirecting(true);
+    const price = selectedPlan === 'Pro' ? 29 : 99;
+    const loadToast = toast.loading('Initiating secure transaction with Amazon Pay...');
+    try {
+      const response = await fetch('/api/amazon-pay/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: selectedPlan, price })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to initiate Amazon Pay session.');
+      }
+      
+      const session = await response.json();
+      if (session.webCheckoutDetails && session.webCheckoutDetails.amazonPayRedirectUrl) {
+        toast.success('Secure session established. Redirecting...', { id: loadToast });
+        window.location.href = session.webCheckoutDetails.amazonPayRedirectUrl;
+      } else {
+        throw new Error('No redirect URL returned from Amazon Pay.');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Error creating Amazon Pay checkout session.', { id: loadToast });
+      console.error(err);
+    } finally {
+      setIsRedirecting(false);
+    }
   };
 
   const handleSimulateLogin = () => {
@@ -137,12 +180,32 @@ export function AmazonPayHub() {
                 <span className="text-sm font-medium">Checking credentials in .env...</span>
               </div>
             ) : keysConfigured ? (
-              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-emerald-800 flex items-start gap-3">
-                <ShieldCheck size={22} className="text-emerald-600 shrink-0 mt-0.5" />
-                <div>
-                  <h4 className="font-bold text-sm">Connected & Active</h4>
-                  <p className="text-xs text-emerald-700 mt-1">Your server is configured with valid Amazon Pay keys in .env. Real API transactions can be executed seamlessly!</p>
+              <div className="space-y-4">
+                <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-emerald-800 flex items-start gap-3">
+                  <ShieldCheck size={22} className="text-emerald-600 shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="font-bold text-sm">
+                      Connected & Active ({sandboxMode ? 'Sandbox Testing' : 'Production Live 🔴'})
+                    </h4>
+                    <p className="text-xs text-emerald-700 mt-1">
+                      Your server is configured with valid Amazon Pay keys. 
+                      {sandboxMode 
+                        ? " Transactions are running in Sandbox mode. Switch to Live mode for production payments." 
+                        : " Real-world LIVE payments are active! Money will be processed from buyer wallets."}
+                    </p>
+                  </div>
                 </div>
+                {sandboxMode && (
+                  <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 text-blue-800 flex items-start gap-3">
+                    <Info size={22} className="text-blue-600 shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="font-bold text-sm">How to accept live payments</h4>
+                      <p className="text-xs text-blue-700 leading-relaxed mt-1">
+                        To accept live, production payments, make sure you configure your environment variables with <code className="bg-blue-100/50 px-1 py-0.5 rounded font-mono">AMAZON_PAY_SANDBOX="false"</code>.
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 text-amber-800 flex items-start gap-3">
@@ -157,11 +220,15 @@ export function AmazonPayHub() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
               <div className="border border-slate-100 bg-slate-50/50 rounded-2xl p-4">
                 <span className="text-xs font-bold text-slate-400 block mb-1">MERCHANT ID</span>
-                <span className="text-sm font-mono text-slate-700 break-all">{keysConfigured ? 'amzn1.merchant.••••••••••' : 'Not configured'}</span>
+                <span className="text-sm font-mono text-slate-700 break-all">
+                  {keysConfigured ? merchantId || 'amzn1.merchant.••••••••••' : 'Not configured'}
+                </span>
               </div>
               <div className="border border-slate-100 bg-slate-50/50 rounded-2xl p-4">
                 <span className="text-xs font-bold text-slate-400 block mb-1">STORE ID (CLIENT ID)</span>
-                <span className="text-sm font-mono text-slate-700 break-all">{keysConfigured ? 'amzn1.application-oa2-client.••••••••••' : 'Not configured'}</span>
+                <span className="text-sm font-mono text-slate-700 break-all">
+                  {keysConfigured ? storeId || 'amzn1.application-oa2-client.••••••••••' : 'Not configured'}
+                </span>
               </div>
             </div>
           </div>
@@ -231,10 +298,28 @@ const client = new WebCheckoutClient({
           <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold text-slate-900">Sandbox Playground</h2>
-                <span className="text-xs font-bold text-amber-600 bg-amber-50 border border-amber-100 px-2 py-1 rounded-lg">Interactive Demo</span>
+                <h2 className="text-lg font-bold text-slate-900">
+                  {keysConfigured ? 'Payment Checkout Gateway' : 'Sandbox Playground'}
+                </h2>
+                <span className={`text-xs font-bold px-2 py-1 rounded-lg border ${
+                  keysConfigured 
+                    ? sandboxMode 
+                      ? 'text-blue-600 bg-blue-50 border-blue-100' 
+                      : 'text-rose-600 bg-rose-50 border-rose-100'
+                    : 'text-amber-600 bg-amber-50 border-amber-100'
+                }`}>
+                  {keysConfigured 
+                    ? sandboxMode 
+                      ? 'Sandbox Mode' 
+                      : 'Production Live 🔴'
+                    : 'Interactive Demo'}
+                </span>
               </div>
-              <p className="text-xs text-slate-500 mb-6 leading-relaxed">Choose a subscription tier below and test the checkout flow using our interactive, step-by-step simulator representing official Amazon Pay v2 standards.</p>
+              <p className="text-xs text-slate-500 mb-6 leading-relaxed">
+                {keysConfigured 
+                  ? `Choose a subscription tier below and complete your upgrade securely using the ${sandboxMode ? 'Sandbox' : 'Production Live'} Amazon Pay gateway.`
+                  : 'Choose a subscription tier below and test the checkout flow using our interactive, step-by-step simulator representing official Amazon Pay v2 standards.'}
+              </p>
               
               {/* Plan Picker */}
               <div className="grid grid-cols-2 gap-3 mb-6 bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
@@ -278,20 +363,56 @@ const client = new WebCheckoutClient({
               </div>
             </div>
 
-            {/* Simulated Gold Amazon Pay Button */}
+            {/* Gold Amazon Pay Button */}
             <div>
-              <button
-                onClick={handleStartSimulatedCheckout}
-                className="w-full h-12 bg-[#FF9900] hover:bg-[#E58A00] text-slate-950 font-bold rounded-full shadow-md transition-all flex items-center justify-center gap-3 relative overflow-hidden group border border-amber-500"
-              >
-                {/* Official Branding Logo Mimic */}
-                <div className="flex items-center gap-1.5 py-1 px-3 bg-white/20 rounded-full text-xs tracking-wider">
-                  <span className="font-extrabold text-slate-950 italic">amazon</span>
-                  <span className="font-normal text-slate-950">pay</span>
+              {keysConfigured ? (
+                <button
+                  onClick={handleRealAmazonPayCheckout}
+                  disabled={isRedirecting}
+                  className="w-full h-12 bg-[#FF9900] hover:bg-[#E58A00] disabled:opacity-75 text-slate-950 font-bold rounded-full shadow-md transition-all flex items-center justify-center gap-3 relative overflow-hidden group border border-amber-500"
+                >
+                  {isRedirecting ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      <span className="text-sm">Connecting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-1.5 py-1 px-3 bg-white/20 rounded-full text-xs tracking-wider">
+                        <span className="font-extrabold text-slate-950 italic">amazon</span>
+                        <span className="font-normal text-slate-950">pay</span>
+                      </div>
+                      <span className="text-sm tracking-wide">
+                        Pay with Amazon Pay
+                      </span>
+                      <ArrowRight size={16} className="text-slate-950 shrink-0 group-hover:translate-x-1 transition-transform" />
+                    </>
+                  )}
+                </button>
+              ) : (
+                <button
+                  onClick={handleStartSimulatedCheckout}
+                  className="w-full h-12 bg-[#FF9900] hover:bg-[#E58A00] text-slate-950 font-bold rounded-full shadow-md transition-all flex items-center justify-center gap-3 relative overflow-hidden group border border-amber-500"
+                >
+                  <div className="flex items-center gap-1.5 py-1 px-3 bg-white/20 rounded-full text-xs tracking-wider">
+                    <span className="font-extrabold text-slate-950 italic">amazon</span>
+                    <span className="font-normal text-slate-950">pay</span>
+                  </div>
+                  <span className="text-sm tracking-wide">Subscribe Now</span>
+                  <ArrowRight size={16} className="text-slate-950 shrink-0 group-hover:translate-x-1 transition-transform" />
+                </button>
+              )}
+              
+              {keysConfigured && (
+                <div className="text-center mt-3">
+                  <button 
+                    onClick={handleStartSimulatedCheckout}
+                    className="text-xs text-slate-400 hover:text-slate-600 underline font-semibold transition-colors"
+                  >
+                    Want to test offline? Try the interactive mock simulator instead
+                  </button>
                 </div>
-                <span className="text-sm tracking-wide">Subscribe Now</span>
-                <ArrowRight size={16} className="text-slate-950 shrink-0 group-hover:translate-x-1 transition-transform" />
-              </button>
+              )}
               
               <div className="flex items-center justify-center gap-1.5 mt-3 text-[10px] text-slate-400 font-medium">
                 <ShieldCheck size={12} className="text-slate-400" />
