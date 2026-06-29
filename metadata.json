@@ -1,6 +1,6 @@
 {
-  "name": "",
-  "description": "",
+  "name": "LeadFinder AI",
+  "description": "A production-ready SaaS application that helps website design agencies discover local businesses and generate AI-powered website design and SEO audits.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

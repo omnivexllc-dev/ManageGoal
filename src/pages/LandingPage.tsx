@@ -1,15 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Target, Users, Zap, CheckCircle2, TrendingUp, BarChart3, Lock, MessageSquare, Loader2 } from 'lucide-react';
+import { Target, Users, Zap, CheckCircle2, TrendingUp, BarChart3, Lock, MessageSquare, Loader2, X, AlertTriangle, Key, ExternalLink } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { loadStripe } from '@stripe/stripe-js';
 
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY || '');
+const stripePromise = loadStripe((import.meta as any).env?.VITE_STRIPE_PUBLIC_KEY || '');
 
 export function LandingPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const [stripeStatus, setStripeStatus] = useState<{ configured: boolean; hasSecretKey: boolean; hasPublicKey: boolean } | null>(null);
+  const [showStripeGuide, setShowStripeGuide] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/stripe/status')
+      .then(res => res.json())
+      .then(data => setStripeStatus(data))
+      .catch(err => console.error('Error fetching Stripe status:', err));
+  }, []);
 
   const handleGetStarted = () => {
     if (user) {
@@ -20,6 +29,11 @@ export function LandingPage() {
   };
 
   const handleUpgrade = async (plan: string, price: number) => {
+    if (stripeStatus && !stripeStatus.configured) {
+      setShowStripeGuide(true);
+      return;
+    }
+
     try {
       setLoadingPlan(plan);
       const response = await fetch('/api/create-checkout-session', {
@@ -30,20 +44,38 @@ export function LandingPage() {
         body: JSON.stringify({ plan, price }),
       });
 
-      const { id, error } = await response.json();
+      const data = await response.json().catch(() => null);
+      if (!data) {
+        throw new Error('Invalid response from payment server');
+      }
+
+      const { id, error } = data;
       
       if (error) {
-        alert(error);
+        if (error.includes('STRIPE_SECRET_KEY') || error.includes('credentials')) {
+          setShowStripeGuide(true);
+        } else {
+          alert(error);
+        }
         return;
       }
 
       const stripe = await stripePromise;
       if (stripe) {
-        await stripe.redirectToCheckout({ sessionId: id });
+        const { error: redirectError } = await (stripe as any).redirectToCheckout({ sessionId: id });
+        if (redirectError) {
+          alert(`Stripe Redirect Error: ${redirectError.message}`);
+        }
+      } else {
+        setShowStripeGuide(true);
       }
     } catch (e: any) {
       console.error(e);
-      alert('Failed to initiate checkout.');
+      if (!(import.meta as any).env?.VITE_STRIPE_PUBLIC_KEY) {
+        setShowStripeGuide(true);
+      } else {
+        alert(`Failed to initiate checkout: ${e.message || 'Please check your connection and try again.'}`);
+      }
     } finally {
       setLoadingPlan(null);
     }
@@ -221,13 +253,21 @@ export function LandingPage() {
                   </li>
                 ))}
               </ul>
-              <button 
-                onClick={() => handleUpgrade('Pro', 29)}
-                disabled={loadingPlan === 'Pro'}
-                className="w-full py-3 rounded-xl font-medium bg-white text-slate-900 hover:bg-slate-100 transition-colors mt-auto flex items-center justify-center gap-2 disabled:opacity-75"
-              >
-                {loadingPlan === 'Pro' ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Upgrade to Pro'}
-              </button>
+              <div className="mt-auto space-y-3">
+                <button 
+                  onClick={() => handleUpgrade('Pro', 29)}
+                  disabled={loadingPlan === 'Pro'}
+                  className="w-full py-3 rounded-xl font-medium bg-white text-slate-900 hover:bg-slate-100 transition-colors flex items-center justify-center gap-2 disabled:opacity-75"
+                >
+                  {loadingPlan === 'Pro' ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Upgrade to Pro with Card'}
+                </button>
+                <Link
+                  to="/amazon-pay"
+                  className="w-full py-2.5 rounded-xl font-bold bg-[#FF9900] text-slate-950 hover:bg-[#E58A00] transition-colors flex items-center justify-center gap-2 text-xs border border-amber-600 shadow-sm"
+                >
+                  <span className="italic">amazon</span> pay
+                </Link>
+              </div>
             </div>
 
             {/* Enterprise Plan */}
@@ -282,6 +322,101 @@ export function LandingPage() {
           </p>
         </div>
       </footer>
+
+      {showStripeGuide && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl relative border border-slate-100 max-h-[90vh] overflow-y-auto">
+            <button
+              onClick={() => setShowStripeGuide(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            
+            <div className="flex items-start gap-4 mb-5">
+              <div className="w-12 h-12 rounded-full bg-amber-50 flex items-center justify-center text-amber-600 shrink-0">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-slate-950">Stripe Integration Required</h3>
+                <p className="text-sm text-slate-500 mt-1">
+                  To accept live card payments, you need to connect your Stripe account. Here is how to configure it in 2 minutes:
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-sm">
+                <h4 className="font-semibold text-slate-900 mb-2 flex items-center gap-1.5">
+                  <Key className="w-4 h-4 text-slate-500" />
+                  1. Get your API Keys from Stripe
+                </h4>
+                <p className="text-slate-600 mb-2 font-sans">
+                  Sign in to your <a href="https://dashboard.stripe.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline inline-flex items-center gap-0.5 font-semibold">Stripe Dashboard <ExternalLink className="w-3 h-3" /></a>, toggle **"Test Mode"** on/off, then go to **Developers** &gt; **API Keys**.
+                </p>
+                <div className="space-y-1.5 font-mono text-xs bg-white p-2.5 rounded border border-slate-200">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Publishable key (pk_...)</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Secret key (sk_...)</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-sm">
+                <h4 className="font-semibold text-slate-900 mb-2 flex items-center gap-1.5">
+                  <span className="flex items-center justify-center w-5 h-5 rounded-full bg-slate-900 text-white text-xs font-bold font-sans">2</span>
+                  Add them to AI Studio Settings
+                </h4>
+                <p className="text-slate-600 mb-3 font-sans">
+                  Click the **Settings (gear)** icon in the top-right of your AI Studio workspace, and add the following secrets:
+                </p>
+                <div className="space-y-2">
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center justify-between text-xs font-mono">
+                      <span className="font-semibold text-slate-700">VITE_STRIPE_PUBLIC_KEY</span>
+                      <span className={stripeStatus?.hasPublicKey ? "text-emerald-600 flex items-center gap-0.5 font-semibold" : "text-amber-600 flex items-center gap-0.5 font-semibold"}>
+                        {stripeStatus?.hasPublicKey ? "● Configured" : "○ Missing"}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 font-sans">Your Stripe Publishable Key (pk_test_... or pk_live_...)</p>
+                  </div>
+                  <hr className="border-slate-200" />
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center justify-between text-xs font-mono">
+                      <span className="font-semibold text-slate-700">STRIPE_SECRET_KEY</span>
+                      <span className={stripeStatus?.hasSecretKey ? "text-emerald-600 flex items-center gap-0.5 font-semibold" : "text-amber-600 flex items-center gap-0.5 font-semibold"}>
+                        {stripeStatus?.hasSecretKey ? "● Configured" : "○ Missing"}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 font-sans">Your Stripe Secret Key (sk_test_... or sk_live_...)</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-sm">
+                <h4 className="font-semibold text-slate-900 mb-1 flex items-center gap-1.5">
+                  <span className="flex items-center justify-center w-5 h-5 rounded-full bg-slate-900 text-white text-xs font-bold font-sans">3</span>
+                  Recompile and Try Again
+                </h4>
+                <p className="text-slate-600 font-sans">
+                  After saving, click **Compile Applet** or wait for the system to redeploy.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => setShowStripeGuide(false)}
+                className="px-5 py-2.5 bg-slate-900 text-white text-sm font-medium rounded-xl hover:bg-slate-800 transition-colors"
+              >
+                I Understand
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -39,7 +39,7 @@ export function Analytics() {
 
   const companyData = Object.entries(companyDataMap)
     .map(([name, value]) => ({ name, value }))
-    .sort((a, b) => b.value - a.value)
+    .sort((a, b) => (b.value as number) - (a.value as number))
     .slice(0, 5);
 
   return (

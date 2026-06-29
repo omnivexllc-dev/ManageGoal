@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, UserCheck, CheckSquare, Settings, LogOut, ChevronLeft, ChevronRight, Zap, BarChart3 } from 'lucide-react';
+import { LayoutDashboard, Users, UserCheck, CheckSquare, Settings, LogOut, ChevronLeft, ChevronRight, Zap, BarChart3, CreditCard, Search } from 'lucide-react';
 import { signOut } from '../lib/firebase';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -10,12 +10,14 @@ export function cn(...inputs: any[]) {
 }
 
 const navItems = [
+  { name: 'LeadFinder AI', path: '/leadfinder', icon: Search },
   { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
   { name: 'Leads', path: '/leads', icon: Users },
   { name: 'Customers', path: '/customers', icon: UserCheck },
   { name: 'Tasks', path: '/tasks', icon: CheckSquare },
   { name: 'Analytics', path: '/analytics', icon: BarChart3 },
   { name: 'Automation', path: '/automation', icon: Zap },
+  { name: 'Amazon Pay', path: '/amazon-pay', icon: CreditCard },
   { name: 'Settings', path: '/settings', icon: Settings },
 ];
 
@@ -25,8 +27,8 @@ export function Sidebar({ collapsed, setCollapsed }: { collapsed: boolean, setCo
       <div className="flex h-20 items-center justify-between px-6 border-b border-slate-200">
         {!collapsed && (
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold">M</div>
-            <span className="text-xl font-bold tracking-tight text-slate-900">ManageGoal</span>
+            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold">L</div>
+            <span className="text-xl font-bold tracking-tight text-slate-900">LeadFinder AI</span>
           </div>
         )}
         <button onClick={() => setCollapsed(!collapsed)} className="p-1.5 rounded-md hover:bg-slate-100 text-slate-400 transition-colors">

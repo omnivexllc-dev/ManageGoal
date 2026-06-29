@@ -15,6 +15,8 @@ import { Tasks } from './pages/Tasks';
 import { Analytics } from './pages/Analytics';
 import { Automation } from './pages/Automation';
 import { Settings } from './pages/Settings';
+import { AmazonPayHub } from './pages/AmazonPayHub';
+import { LeadFinder } from './pages/LeadFinder';
 import { Login } from './pages/Login';
 import { LandingPage } from './pages/LandingPage';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
@@ -39,6 +41,7 @@ export default function App() {
         <Route path="/terms" element={<Terms />} />
         <Route path="/refund" element={<RefundPolicy />} />
         <Route element={<PrivateRoute><Layout /></PrivateRoute>}>
+          <Route path="/leadfinder" element={<LeadFinder />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/leads" element={<Leads />} />
           <Route path="/customers" element={<Customers />} />
@@ -46,6 +49,7 @@ export default function App() {
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/automation" element={<Automation />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/amazon-pay" element={<AmazonPayHub />} />
         </Route>
       </Routes>
     </BrowserRouter>

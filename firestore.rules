@@ -17,13 +17,14 @@ service cloud.firestore {
              data.email is string && data.email.size() <= 200 &&
              data.name is string && data.name.size() <= 200 &&
              data.role is string && data.role.size() <= 50 &&
-             data.createdAt is number && data.updatedAt is number;
+             (data.createdAt is number) && (data.updatedAt is number) &&
+             ( !('plan' in data) || (data.plan is string && data.plan.size() <= 200) );
     }
 
     match /users/{userId} {
       allow get: if isSignedIn() && request.auth.uid == userId;
       allow create: if isSignedIn() && request.auth.uid == userId && isValidUser(incoming()) && incoming().createdAt > 0 && incoming().updatedAt > 0;
-      allow update: if isSignedIn() && request.auth.uid == userId && isValidUser(incoming()) && incoming().updatedAt > 0 && incoming().createdAt == existing().createdAt && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'updatedAt', 'role']);
+      allow update: if isSignedIn() && request.auth.uid == userId && isValidUser(incoming()) && incoming().updatedAt > 0 && incoming().createdAt == existing().createdAt && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'updatedAt', 'role', 'plan']);
     }
 
     function isValidLead(data) {
@@ -31,7 +32,7 @@ service cloud.firestore {
              data.ownerId is string && data.ownerId.size() <= 128 &&
              data.name is string && data.name.size() <= 200 &&
              data.status is string && data.status.size() <= 50 &&
-             data.createdAt is number && data.updatedAt is number &&
+             (data.createdAt is number) && (data.updatedAt is number) &&
              ( !('email' in data) || (data.email is string && data.email.size() <= 200) ) &&
              ( !('company' in data) || (data.company is string && data.company.size() <= 200) ) &&
              ( !('value' in data) || (data.value is number) ) &&
@@ -51,7 +52,7 @@ service cloud.firestore {
              data.ownerId is string && data.ownerId.size() <= 128 &&
              data.name is string && data.name.size() <= 200 &&
              data.email is string && data.email.size() <= 200 &&
-             data.createdAt is number && data.updatedAt is number &&
+             (data.createdAt is number) && (data.updatedAt is number) &&
              ( !('company' in data) || (data.company is string && data.company.size() <= 200) ) &&
              ( !('industry' in data) || (data.industry is string && data.industry.size() <= 200) );
     }
@@ -69,7 +70,7 @@ service cloud.firestore {
              data.ownerId is string && data.ownerId.size() <= 128 &&
              data.title is string && data.title.size() <= 250 &&
              data.status is string && data.status.size() <= 50 &&
-             data.createdAt is number && data.updatedAt is number &&
+             (data.createdAt is number) && (data.updatedAt is number) &&
              ( !('description' in data) || (data.description is string && data.description.size() <= 10000) ) &&
              ( !('dueDate' in data) || (data.dueDate is number) );
     }
@@ -80,6 +81,22 @@ service cloud.firestore {
       allow create: if isSignedIn() && isValidId(taskId) && isValidTask(incoming()) && incoming().ownerId == request.auth.uid && incoming().createdAt > 0 && incoming().updatedAt > 0;
       allow update: if isSignedIn() && isValidId(taskId) && existing().ownerId == request.auth.uid && isValidTask(incoming()) && incoming().ownerId == request.auth.uid && incoming().createdAt == existing().createdAt && incoming().updatedAt > 0 && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'status', 'dueDate', 'updatedAt']);
       allow delete: if isSignedIn() && isValidId(taskId) && existing().ownerId == request.auth.uid;
+    }
+
+    match /discoveredLeads/{leadId} {
+      allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow get: if isSignedIn() && resource.data.ownerId == request.auth.uid && isValidId(leadId);
+      allow create: if isSignedIn() && isValidId(leadId) && incoming().ownerId == request.auth.uid;
+      allow update: if isSignedIn() && isValidId(leadId) && existing().ownerId == request.auth.uid && incoming().ownerId == request.auth.uid;
+      allow delete: if isSignedIn() && isValidId(leadId) && existing().ownerId == request.auth.uid;
+    }
+
+    match /searchHistory/{historyId} {
+      allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow get: if isSignedIn() && resource.data.ownerId == request.auth.uid && isValidId(historyId);
+      allow create: if isSignedIn() && isValidId(historyId) && incoming().ownerId == request.auth.uid;
+      allow update: if isSignedIn() && isValidId(historyId) && existing().ownerId == request.auth.uid && incoming().ownerId == request.auth.uid;
+      allow delete: if isSignedIn() && isValidId(historyId) && existing().ownerId == request.auth.uid;
     }
   }
 }
